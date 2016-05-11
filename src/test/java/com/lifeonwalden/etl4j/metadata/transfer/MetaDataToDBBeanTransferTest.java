@@ -150,4 +150,25 @@ public class MetaDataToDBBeanTransferTest {
 		Assert.assertTrue(new File(System.getProperty("java.io.tmpdir") + "\\UserTest.java").exists());
 		connection.close();
 	}
+
+	@Test
+	public void transfer_listAllTable() throws SQLException, ClassNotFoundException {
+		Class.forName("org.hsqldb.jdbcDriver");
+		Connection connection = DriverManager.getConnection(CONNECTION_STRING, USER_NAME, PASSWORD);
+		String classSrc = new MetaDataToDBBeanTransfer("", null).transfer(connection);
+		Assert.assertTrue(StringUtils.contains(classSrc, "User") && StringUtils.contains(classSrc, "Book")
+				&& !StringUtils.contains(classSrc, "INFORMATION_SCHEMA_CATALOG_NAME"));
+		connection.close();
+	}
+
+	@Test
+	public void transfer_listAllTableFile() throws SQLException, ClassNotFoundException {
+		Class.forName("org.hsqldb.jdbcDriver");
+		Connection connection = DriverManager.getConnection(CONNECTION_STRING, USER_NAME, PASSWORD);
+		new MetaDataToDBBeanTransfer("", null).toClassFile(connection, System.getProperty("java.io.tmpdir"));
+		Assert.assertTrue(new File(System.getProperty("java.io.tmpdir") + "\\User.java").exists()
+				&& new File(System.getProperty("java.io.tmpdir") + "\\Book.java").exists()
+				&& !new File(System.getProperty("java.io.tmpdir") + "\\INFORMATION_SCHEMA_CATALOG_NAME.java").exists());
+		connection.close();
+	}
 }

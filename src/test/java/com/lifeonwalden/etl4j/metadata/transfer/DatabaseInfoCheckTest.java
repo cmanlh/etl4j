@@ -67,7 +67,7 @@ public class DatabaseInfoCheckTest {
 	}
 
 	@Test
-	public void tableInfo() throws SQLException, ClassNotFoundException {
+	public void tableListInfo() throws SQLException, ClassNotFoundException {
 		Class.forName("org.hsqldb.jdbcDriver");
 		Connection connection = DriverManager.getConnection(CONNECTION_STRING, USER_NAME, PASSWORD);
 		DatabaseMetaData dbmd = connection.getMetaData();

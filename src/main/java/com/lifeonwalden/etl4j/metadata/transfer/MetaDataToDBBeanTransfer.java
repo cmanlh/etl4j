@@ -3,6 +3,9 @@ package com.lifeonwalden.etl4j.metadata.transfer;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
@@ -10,6 +13,7 @@ import javax.lang.model.element.Modifier;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.lifeonwalden.util.db.CaseSensitiveWord;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
@@ -47,10 +51,57 @@ public class MetaDataToDBBeanTransfer implements MetaDataTransfer {
 		return output.toString();
 	}
 
+	@Override
+	public String transfer(Connection connection) throws SQLException {
+		StringBuilder output = new StringBuilder();
+		try {
+			DatabaseMetaData dbmd = connection.getMetaData();
+			ResultSet tableResultSet = dbmd.getTables(null, null, "%", null);
+			String dbPrdName = dbmd.getDatabaseProductName();
+			while (tableResultSet.next()) {
+				String tableType = tableResultSet.getString(4);
+				if ("TABLE".equalsIgnoreCase(tableType) || "VIEW".equalsIgnoreCase(tableType)) {
+					JavaFile.builder(packageName,
+							build(connection
+									.prepareStatement(
+											StringUtils.join("select * from ", CaseSensitiveWord.toRightOne(tableResultSet.getString(3), dbPrdName)))
+									.getMetaData()))
+							.build().writeTo(output);
+				}
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+
+		return output.toString();
+	}
+
 	public void toClassFile(ResultSetMetaData rsmd, String location) throws SQLException {
 		JavaFile javaFile = JavaFile.builder(packageName, build(rsmd)).build();
 		try {
 			javaFile.writeTo(new File(location));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public void toClassFile(Connection connection, String location) throws SQLException {
+		File outputLocation = new File(location);
+		try {
+			DatabaseMetaData dbmd = connection.getMetaData();
+			ResultSet tableResultSet = dbmd.getTables(null, null, "%", null);
+			String dbPrdName = dbmd.getDatabaseProductName();
+			while (tableResultSet.next()) {
+				String tableType = tableResultSet.getString(4);
+				if ("TABLE".equalsIgnoreCase(tableType) || "VIEW".equalsIgnoreCase(tableType)) {
+					JavaFile.builder(packageName,
+							build(connection
+									.prepareStatement(
+											StringUtils.join("select * from ", CaseSensitiveWord.toRightOne(tableResultSet.getString(3), dbPrdName)))
+									.getMetaData()))
+							.build().writeTo(outputLocation);
+				}
+			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
