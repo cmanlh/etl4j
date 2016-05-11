@@ -1,11 +1,10 @@
 package com.lifeonwalden.etl4j.metadata.transfer;
 
+import java.io.File;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -130,19 +129,25 @@ public class MetaDataToDBBeanTransferTest {
 	}
 
 	@Test
-	public void transfer_test() throws SQLException, ClassNotFoundException {
+	public void transfer_withLiteral() throws SQLException, ClassNotFoundException {
 		Class.forName("org.hsqldb.jdbcDriver");
 		Connection connection = DriverManager.getConnection(CONNECTION_STRING, USER_NAME, PASSWORD);
-		DatabaseMetaData dbmd = connection.getMetaData();
-		ResultSet tableResultSet = dbmd.getTables(null, null, "%", null);
-		System.out.printf("%-10s %-30s %-35s %-15s %-15s %-15s %-15s %-35s %-15s %-15s\n", "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "TABLE_TYPE",
-				"TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME", "SELF_REFERENCING_COL_NAME", "REF_GENERATION", "REMARKS");
-		while (tableResultSet.next()) {
-			System.out.printf("%-10s %-30s %-35s %-15s %-15s %-15s %-15s %-35s %-15s %-15s\n", tableResultSet.getString(1),
-					tableResultSet.getString(2), tableResultSet.getString(3), tableResultSet.getString(4), tableResultSet.getString(6),
-					tableResultSet.getString(7), tableResultSet.getString(8), tableResultSet.getString(9), tableResultSet.getString(10),
-					tableResultSet.getString(5));
-		}
+		String classSrc = new MetaDataToDBBeanTransfer("", null).transfer(connection.createStatement()
+				.executeQuery(
+						"select u.\"id\", u.\"age\", b.\"name\", 'text' as \"desc\", 1 as \"cnt\" from \"Book\" b left join \"User\" u on (b.\"owner\" = u.\"id\")")
+				.getMetaData());
+		Assert.assertTrue(StringUtils.contains(classSrc, "String desc") && StringUtils.contains(classSrc, "Integer cnt"));
+		connection.close();
+	}
+
+	@Test
+	public void transfer_toClassFile() throws SQLException, ClassNotFoundException {
+		Class.forName("org.hsqldb.jdbcDriver");
+		Connection connection = DriverManager.getConnection(CONNECTION_STRING, USER_NAME, PASSWORD);
+		new MetaDataToDBBeanTransfer("", "UserTest").toClassFile(connection.createStatement().executeQuery("select * from \"User\"").getMetaData(),
+				System.getProperty("java.io.tmpdir"));
+
+		Assert.assertTrue(new File(System.getProperty("java.io.tmpdir") + "\\UserTest.java").exists());
 		connection.close();
 	}
 }

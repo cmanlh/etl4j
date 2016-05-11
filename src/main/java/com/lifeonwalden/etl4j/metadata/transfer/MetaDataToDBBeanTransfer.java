@@ -1,5 +1,6 @@
 package com.lifeonwalden.etl4j.metadata.transfer;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.sql.ResultSetMetaData;
@@ -35,6 +36,28 @@ public class MetaDataToDBBeanTransfer implements MetaDataTransfer {
 
 	@Override
 	public String transfer(ResultSetMetaData rsmd) throws SQLException {
+		JavaFile javaFile = JavaFile.builder(packageName, build(rsmd)).build();
+		StringBuilder output = new StringBuilder();
+		try {
+			javaFile.writeTo(output);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+
+		return output.toString();
+	}
+
+	public void toClassFile(ResultSetMetaData rsmd, String location) throws SQLException {
+		JavaFile javaFile = JavaFile.builder(packageName, build(rsmd)).build();
+		try {
+			javaFile.writeTo(new File(location));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private TypeSpec build(ResultSetMetaData rsmd) throws SQLException {
+
 		assert StringUtils.isNotBlank(packageName);
 
 		ClassName _className = ClassName.get(packageName.trim(), StringUtils.isBlank(className) ? rsmd.getTableName(1) : className.trim());
@@ -59,14 +82,7 @@ public class MetaDataToDBBeanTransfer implements MetaDataTransfer {
 					.addMethod(MethodSpec.methodBuilder(StringUtils.join("get", methodSubfix)).addModifiers(Modifier.PUBLIC).returns(fieldClass)
 							.addStatement("return this.$L", fieldName).build());
 		}
-		JavaFile javaFile = JavaFile.builder(packageName, beanBuilder.build()).build();
-		StringBuilder output = new StringBuilder();
-		try {
-			javaFile.writeTo(output);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 
-		return output.toString();
+		return beanBuilder.build();
 	}
 }
