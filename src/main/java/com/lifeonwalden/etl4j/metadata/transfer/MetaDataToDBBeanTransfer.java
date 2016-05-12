@@ -122,7 +122,7 @@ public class MetaDataToDBBeanTransfer implements MetaDataTransfer {
         int colCount = rsmd.getColumnCount();
         for (int i = 1; i <= colCount; i++) {
             String fieldName = rsmd.getColumnLabel(i);
-            String methodSubfix = StringUtils.capitalize(rsmd.getColumnLabel(i));
+            String methodSubfix = StringUtils.capitalize(fieldName);
             Class<?> fieldClass = null;
             try {
                 fieldClass = Class.forName(rsmd.getColumnClassName(i));
