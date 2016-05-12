@@ -79,6 +79,8 @@ public class LoadTest extends BaseTest {
     Extract extractPeople = new Extract("People", connection);
     extractPeople.query(null);
     Assert.assertTrue(extractPeople.next());
+
+    connection.close();
   }
 
   @Test
@@ -99,6 +101,8 @@ public class LoadTest extends BaseTest {
     Extract extractPeople = new Extract("People", connection);
     extractPeople.query(null);
     Assert.assertTrue(extractPeople.next());
+
+    connection.close();
   }
 
   @Test
@@ -119,6 +123,8 @@ public class LoadTest extends BaseTest {
     Extract extractPeople = new Extract("People", connection);
     extractPeople.query(null);
     Assert.assertTrue(extractPeople.next());
+
+    connection.close();
   }
 
   @Test
@@ -139,5 +145,7 @@ public class LoadTest extends BaseTest {
     Extract extractPeople = new Extract("People", connection);
     extractPeople.query(null);
     Assert.assertTrue(extractPeople.next());
+
+    connection.close();
   }
 }
