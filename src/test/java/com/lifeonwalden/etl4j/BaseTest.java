@@ -37,6 +37,12 @@ public class BaseTest {
     ps.setDate(4, new Date(System.currentTimeMillis()));
     ps.addBatch();
     ps.executeBatch();
+    ps.setString(1, "3333");
+    ps.setInt(2, 35);
+    ps.setDouble(3, 8.6);
+    ps.setDate(4, null);
+    ps.addBatch();
+    ps.executeBatch();
     ps.close();
 
     ps = connection.prepareStatement("insert into \"Book\" values(?,?,?,?)");

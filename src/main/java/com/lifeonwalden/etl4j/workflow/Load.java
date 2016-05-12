@@ -1,30 +1,27 @@
 package com.lifeonwalden.etl4j.workflow;
 
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
+import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
-import com.lifeonwalden.etl4j.metadata.Column;
-import com.lifeonwalden.util.db.FetchMetaStatement;
+import com.lifeonwalden.etl4j.metadata.Param;
+import com.lifeonwalden.util.db.PreparedStatementHanlder;
 
 public class Load {
   private Connection connection;
-  private String table;
   private String sql;
-  private ResultSet rs;
+  private long counter;
+  private long buffCounter;
   private PreparedStatement statement;
   private int blockSize = 2000;
-  private ImmutableMap<String, Column> columnMapping;
+  private ImmutableMap<Integer, Param> paramMapping;
 
-  public Load(String table, String sql, Connection connection) throws SQLException {
-    this.table = table;
+  public Load(String sql, Connection connection) throws SQLException {
     this.sql = sql;
     this.connection = connection;
 
@@ -32,32 +29,76 @@ public class Load {
   }
 
   private void init() throws SQLException {
-    DatabaseMetaData dbmd = connection.getMetaData();
-    Statement _statement = connection.createStatement();
+    statement = connection.prepareStatement(sql);
+    ParameterMetaData pmd = statement.getParameterMetaData();
+    Map<Integer, Param> _paramMapping = new HashMap<Integer, Param>();
+    int paramCount = pmd.getParameterCount();
     try {
-      ResultSetMetaData rsmd =
-          _statement.executeQuery(FetchMetaStatement.fetch(table, dbmd.getDatabaseProductName(), dbmd.getDriverName()))
-              .getMetaData();
-      Map<String, Column> _columnMapping = new HashMap<String, Column>();
-      int colCount = rsmd.getColumnCount();
-      try {
-        for (int i = 1; i <= colCount; i++) {
-          _columnMapping.put(rsmd.getColumnLabel(i), new Column().setClazz(Class.forName(rsmd.getColumnClassName(i)))
-              .setIndex(i).setName(rsmd.getColumnLabel(i)));
-        }
-      } catch (ClassNotFoundException e) {
-        throw new RuntimeException(e);
+      for (int i = 1; i <= paramCount; i++) {
+        Param param = new Param().setClazz(Class.forName(pmd.getParameterClassName(i))).setIndex(i)
+            .setType(pmd.getParameterType(i)).setMode(pmd.getParameterMode(i));
+        _paramMapping.put(i, param);
       }
-      columnMapping = ImmutableMap.copyOf(_columnMapping);
-    } finally {
-      _statement.close();
+    } catch (ClassNotFoundException e) {
+      throw new RuntimeException(e);
     }
-
+    paramMapping = ImmutableMap.copyOf(_paramMapping);
   }
 
-  public ImmutableMap<String, Column> getColumnMapping() {
-    return columnMapping;
+  public ImmutableMap<Integer, Param> getParamMapping() {
+    return paramMapping;
   }
 
-  public void writeAtLabel(Map<String, Object> param) throws SQLException {}
+  public long getCounter() {
+    return counter;
+  }
+
+  public int getBlockSize() {
+    return blockSize;
+  }
+
+  public void setBlockSize(int blockSize) {
+    this.blockSize = blockSize;
+  }
+
+  public void writeAtLabel(Map<String, Object> paramPackage, InOutParamHandler paramHandler) throws SQLException {
+    paramHandler.setParamAtLabel(statement, paramPackage);
+    write();
+  }
+
+  public void writeAtIndex(List<Object> paramList) throws SQLException {
+    PreparedStatementHanlder.setParam(statement, paramMapping, paramList);
+    write();
+  }
+
+  private void write() throws SQLException {
+    statement.addBatch();
+    buffCounter++;
+    if (buffCounter >= blockSize) {
+      execute();
+    }
+  }
+
+  private void execute() throws SQLException {
+    for (int cnt : statement.executeBatch()) {
+      counter += cnt;
+    }
+    statement.clearBatch();
+    statement.clearParameters();
+    buffCounter = 0;
+  }
+
+  public void commit() throws SQLException {
+    execute();
+
+    connection.commit();
+  }
+
+  public void close() throws SQLException {
+    try {
+      commit();
+    } finally {
+      statement.close();
+    }
+  }
 }

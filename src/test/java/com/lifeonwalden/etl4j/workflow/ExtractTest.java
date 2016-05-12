@@ -21,7 +21,7 @@ public class ExtractTest extends BaseTest {
     Extract extract = new Extract("User", connection);
     extract.query(null);
 
-    Assert.assertFalse(extract.getColumnMapping().isEmpty());
+    Assert.assertFalse(extract.getColumnLabelMapping().isEmpty());
 
     connection.close();
   }
@@ -34,7 +34,7 @@ public class ExtractTest extends BaseTest {
     Extract extract = new Extract("select \"id\" from \"User\"", connection);
     extract.query(null);
 
-    ImmutableMap<String, Column> mapping = extract.getColumnMapping();
+    ImmutableMap<String, Column> mapping = extract.getColumnLabelMapping();
     Assert.assertTrue(mapping.containsKey("id") && !mapping.containsKey("income"));
 
     connection.close();
@@ -48,7 +48,20 @@ public class ExtractTest extends BaseTest {
     Extract extract = new Extract("select \"id\" from \"User\" where \"id\"=?", connection);
     extract.query(Arrays.asList("1111"));
 
-    Assert.assertFalse(extract.getColumnMapping().isEmpty());
+    Assert.assertFalse(extract.getColumnLabelMapping().isEmpty());
+
+    connection.close();
+  }
+
+  @Test
+  public void execute_withParamWithNull() throws SQLException, ClassNotFoundException {
+    Class.forName("org.hsqldb.jdbcDriver");
+    Connection connection = DriverManager.getConnection(CONNECTION_STRING, USER_NAME, PASSWORD);
+
+    Extract extract = new Extract("select \"id\" from \"User\" where \"id\"=? and \"birthday\" is null", connection);
+    extract.query(Arrays.asList("3333"));
+    extract.next();
+    Assert.assertTrue(extract.fetchNextWithIndex().get(0).equals("3333"));
 
     connection.close();
   }
@@ -62,7 +75,7 @@ public class ExtractTest extends BaseTest {
     extract.query(Arrays.asList("1111"));
 
     Assert.assertTrue(extract.next());
-    Assert.assertTrue(extract.fetchNextAtLabel().get("id").equals("1111"));
+    Assert.assertTrue(extract.fetchNextWithLabel().get("id").equals("1111"));
 
     connection.close();
   }
@@ -76,7 +89,7 @@ public class ExtractTest extends BaseTest {
     extract.query(Arrays.asList("1111"));
 
     Assert.assertTrue(extract.next());
-    Assert.assertTrue(extract.fetchNextAtIndex().get(1).equals("1111"));
+    Assert.assertTrue(extract.fetchNextWithIndex().get(0).equals("1111"));
 
     connection.close();
   }
@@ -90,11 +103,11 @@ public class ExtractTest extends BaseTest {
 
     extract.query(Arrays.asList("1111"));
     Assert.assertTrue(extract.next());
-    Assert.assertTrue(extract.fetchNextAtLabel().get("id").equals("1111"));
+    Assert.assertTrue(extract.fetchNextWithLabel().get("id").equals("1111"));
 
     extract.query(Arrays.asList("2222"));
     Assert.assertTrue(extract.next());
-    Assert.assertTrue(extract.fetchNextAtLabel().get("id").equals("2222"));
+    Assert.assertTrue(extract.fetchNextWithLabel().get("id").equals("2222"));
 
     connection.close();
   }
