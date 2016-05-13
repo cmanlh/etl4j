@@ -16,7 +16,12 @@ public class PreparedStatementHanlder {
 
     for (int i = 0; i < paramList.size(); i++) {
       int colIndex = i + 1;
-      statement.setObject(colIndex, paramList.get(i), paramMapping.get(colIndex).getType());
+      int sqlType = paramMapping.get(colIndex).getType();
+      if (0 == sqlType) {
+        statement.setObject(colIndex, paramList.get(i));
+      } else {
+        statement.setObject(colIndex, paramList.get(i), sqlType);
+      }
     }
   }
 }

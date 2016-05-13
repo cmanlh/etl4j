@@ -35,8 +35,9 @@ public class Load {
     int paramCount = pmd.getParameterCount();
     try {
       for (int i = 1; i <= paramCount; i++) {
-        Param param = new Param().setClazz(Class.forName(pmd.getParameterClassName(i))).setIndex(i)
-            .setType(pmd.getParameterType(i)).setMode(pmd.getParameterMode(i));
+        Param param =
+            new Param().setClazz(Class.forName(pmd.getParameterClassName(i))).setIndex(i)
+                .setType(pmd.getParameterType(i)).setMode(pmd.getParameterMode(i));
         _paramMapping.put(i, param);
       }
     } catch (ClassNotFoundException e) {
@@ -83,6 +84,7 @@ public class Load {
     for (int cnt : statement.executeBatch()) {
       counter += cnt;
     }
+    connection.commit();
     statement.clearBatch();
     statement.clearParameters();
     buffCounter = 0;
