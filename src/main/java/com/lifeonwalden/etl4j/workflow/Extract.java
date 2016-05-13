@@ -27,7 +27,7 @@ public class Extract {
   private String sql;
   private ResultSet rs;
   private PreparedStatement statement;
-  private int fetchSize = 200;
+  private int fetchSize = 1000;
   private ImmutableMap<String, Column> columnLabelMapping;
   private ImmutableMap<Integer, Column> columnIndexMapping;
   private ImmutableMap<Integer, Param> paramMapping;

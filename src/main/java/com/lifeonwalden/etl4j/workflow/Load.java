@@ -18,7 +18,7 @@ public class Load {
   private long counter;
   private long buffCounter;
   private PreparedStatement statement;
-  private int blockSize = 2000;
+  private int blockSize = 5000;
   private ImmutableMap<Integer, Param> paramMapping;
 
   public Load(String sql, Connection connection) throws SQLException {
